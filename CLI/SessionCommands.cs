@@ -7,11 +7,15 @@ internal sealed class HelpCommand(IReadOnlyList<ConsoleCommand> commands) : Cons
 
     public override void Execute(string input, TextWriter output)
     {
-        foreach (var command in commands.Append(this).OrderBy(command => command.Name, StringComparer.Ordinal))
+        foreach (var command in commands.Append(this).Where(command => command.IsAvailable)
+                     .OrderBy(command => command.Name, StringComparer.Ordinal))
         {
             output.WriteLine(command.Usage);
             output.WriteLine($"  {command.Description}");
         }
+
+        output.WriteLine("Студента, преподавателя и критерий можно указать именем или номером.");
+        output.WriteLine("Имена и названия из нескольких слов заключайте в двойные кавычки.");
     }
 }
 

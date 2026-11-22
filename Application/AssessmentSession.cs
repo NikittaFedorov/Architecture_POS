@@ -43,12 +43,31 @@ internal sealed partial class AssessmentSession
             throw new InvalidOperationException("Оценка по этой тройке уже выставлена.");
     }
 
-    private IReadOnlyList<EvaluationRow> GetScores(int student)
+    private void CorrectScore(int student, int teacher, int criterion, decimal score)
+    {
+        if (!_evaluations.TryGetValue((student, teacher, criterion), out var evaluation))
+            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
+
+        evaluation.CorrectScore(new Score(score));
+    }
+
+    private void CancelScore(int student, int teacher, int criterion)
+    {
+        if (!_evaluations.Remove((student, teacher, criterion)))
+            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
+    }
+
+    private string GetStudentName(int student) => Find(_students, student, "студент").Name;
+
+    private string GetTeacherName(int teacher) => Find(_teachers, teacher, "преподаватель").Name;
+
+    private IReadOnlyList<EvaluationRow> GetScores(int student, int? teacher)
     {
         Find(_students, student, "студент");
 
         return _evaluations
-            .Where(entry => entry.Key.Student == student)
+            .Where(entry => entry.Key.Student == student &&
+                (teacher == null || entry.Key.Teacher == teacher))
             .Select(entry => new EvaluationRow(
                 entry.Key.Teacher, _teachers[entry.Key.Teacher - 1].Name,
                 entry.Key.Criterion, _criteria[entry.Key.Criterion - 1].Name,

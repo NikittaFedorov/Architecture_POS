@@ -2,41 +2,70 @@ using Architecture_1.Application;
 
 namespace Architecture_1.CLI;
 
-internal sealed class SetScoreConsoleCommand(AssessmentSession session) : ConsoleCommand
+internal sealed class SetScoreConsoleCommand(AssessmentSession session, ConsoleNavigation navigation) : ConsoleCommand
 {
     public override string Name => "set-score";
-    public override string Arguments => "<номер студента> <номер преподавателя> <номер критерия> <балл>";
+    public override string Arguments => $"{navigation.Mode.EvaluationKeySyntax} <балл>";
     public override string Description => "Выставить оценку по критерию.";
 
     public override void Execute(string input, TextWriter output)
     {
-        string[] words = CommandArguments.ReadWords(input);
-        if (words.Length != 4)
-            throw new FormatException("Укажите номера студента, преподавателя и критерия, затем балл.");
-
-        int student = CommandArguments.ReadNumber(words[0]);
-        int teacher = CommandArguments.ReadNumber(words[1]);
-        int criterion = CommandArguments.ReadNumber(words[2]);
-        decimal score = CommandArguments.ReadDecimal(words[3]);
+        var mode = navigation.Mode;
+        string[] arguments = mode.ReadEvaluationArguments(input, includesScore: true);
+        decimal score = CommandArguments.ReadDecimal(arguments[^1]);
+        var (teacher, student, criterion) = FindEvaluationNumbers(session, mode, arguments);
 
         SetScore(session, new SetScoreCommand(student, teacher, criterion, score));
         output.WriteLine("Оценка выставлена.");
     }
 }
 
-internal sealed class ListScoresCommand(AssessmentSession session) : ConsoleCommand
+internal sealed class CorrectScoreConsoleCommand(AssessmentSession session, ConsoleNavigation navigation) : ConsoleCommand
+{
+    public override string Name => "correct-score";
+    public override string Arguments => $"{navigation.Mode.EvaluationKeySyntax} <балл>";
+    public override string Description => "Исправить выставленную оценку.";
+
+    public override void Execute(string input, TextWriter output)
+    {
+        var mode = navigation.Mode;
+        string[] arguments = mode.ReadEvaluationArguments(input, includesScore: true);
+        decimal score = CommandArguments.ReadDecimal(arguments[^1]);
+        var (teacher, student, criterion) = FindEvaluationNumbers(session, mode, arguments);
+
+        CorrectScore(session, student, teacher, criterion, score);
+        output.WriteLine("Оценка исправлена.");
+    }
+}
+
+internal sealed class CancelScoreConsoleCommand(AssessmentSession session, ConsoleNavigation navigation) : ConsoleCommand
+{
+    public override string Name => "cancel-score";
+    public override string Arguments => navigation.Mode.EvaluationKeySyntax;
+    public override string Description => "Отменить выставленную оценку.";
+
+    public override void Execute(string input, TextWriter output)
+    {
+        var mode = navigation.Mode;
+        string[] arguments = mode.ReadEvaluationArguments(input, includesScore: false);
+        var (teacher, student, criterion) = FindEvaluationNumbers(session, mode, arguments);
+
+        CancelScore(session, student, teacher, criterion);
+        output.WriteLine("Оценка отменена.");
+    }
+}
+
+internal sealed class ListScoresCommand(AssessmentSession session, ConsoleNavigation navigation) : ConsoleCommand
 {
     public override string Name => "scores";
-    public override string Arguments => "<номер студента>";
+    public override string Arguments => navigation.Mode.StudentNumber == null ? "<студент>" : "";
     public override string Description => "Показать оценки студента.";
 
     public override void Execute(string input, TextWriter output)
     {
-        string[] words = CommandArguments.ReadWords(input);
-        if (words.Length != 1)
-            throw new FormatException("Укажите номер студента.");
-
-        var scores = GetScores(session, CommandArguments.ReadNumber(words[0]));
+        var mode = navigation.Mode;
+        int student = mode.StudentNumber ?? FindStudentNumber(session, CommandArguments.ReadSingleArgument(input, "студента"));
+        var scores = GetScores(session, student, mode.TeacherNumber);
         if (scores.Count == 0)
             output.WriteLine("Оценок пока нет.");
 

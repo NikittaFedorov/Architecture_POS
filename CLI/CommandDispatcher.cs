@@ -21,6 +21,12 @@ internal sealed class CommandDispatcher
             return;
         }
 
+        if (!command.IsAvailable)
+        {
+            output.WriteLine("Ошибка: команда недоступна в этом режиме. Введите help.");
+            return;
+        }
+
         var input = parts.Length == 2 ? parts[1].Trim() : "";
         if (command.Arguments.Length == 0 && input.Length > 0)
         {
