@@ -22,7 +22,7 @@ internal sealed class ListStudentsCommand(AssessmentSession session) : ConsoleCo
 
     public override void Execute(string input, TextWriter output)
     {
-        ConsoleLists.Write(output, GetStudents(session).Select(student => student.Name));
+        ConsoleLists.Write(output, GetStudents(session), student => student.Name);
     }
 }
 
@@ -52,7 +52,7 @@ internal sealed class ListTeachersCommand(AssessmentSession session) : ConsoleCo
 
     public override void Execute(string input, TextWriter output)
     {
-        ConsoleLists.Write(output, GetTeachers(session).Select(teacher =>
-            FormattableString.Invariant($"{teacher.Name} | вес {teacher.Weight}")));
+        ConsoleLists.Write(output, GetTeachers(session), teacher =>
+            FormattableString.Invariant($"{teacher.Name} | вес {teacher.Weight}"));
     }
 }

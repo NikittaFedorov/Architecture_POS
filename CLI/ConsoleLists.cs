@@ -1,17 +1,15 @@
+using Architecture_1.Application;
+
 namespace Architecture_1.CLI;
 
 internal static class ConsoleLists
 {
-    public static void Write(TextWriter output, IEnumerable<string> rows)
+    public static void Write<T>(TextWriter output, IReadOnlyList<Numbered<T>> rows, Func<T, string> format)
     {
-        int number = 1;
-        foreach (string row in rows)
-        {
-            output.WriteLine($"{number} | {row}");
-            number++;
-        }
-
-        if (number == 1)
+        if (rows.Count == 0)
             output.WriteLine("Список пуст.");
+
+        foreach (var row in rows)
+            output.WriteLine($"{row.Number} | {format(row.Value)}");
     }
 }

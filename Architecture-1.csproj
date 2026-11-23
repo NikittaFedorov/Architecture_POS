@@ -6,6 +6,15 @@
     <RootNamespace>Architecture_1</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs;Application/**/*.cs;CLI/**/*.cs" />
+    <ProjectReference Include="Core/Architecture.Core.csproj" />
+    <ProjectReference Include="Infrastructure/Relational/Architecture.Relational.csproj" />
+    <ProjectReference Include="Infrastructure/Sqlite/Architecture.Sqlite.csproj" />
+    <ProjectReference Include="Infrastructure/DuckDb/Architecture.DuckDb.csproj" />
+  </ItemGroup>
 
 </Project>

@@ -2,89 +2,71 @@ using Architecture_1.Domain;
 
 namespace Architecture_1.Application;
 
-internal sealed partial class AssessmentSession
+internal sealed partial class AssessmentSession(
+    IStudentRepository students,
+    ITeacherRepository teachers,
+    IRubricRepository rubric,
+    IEvaluationRepository evaluations)
 {
-    private readonly List<Student> _students = [];
-    private readonly List<Teacher> _teachers = [];
-    private readonly List<Criterion> _criteria = [];
-    private readonly Dictionary<(int Student, int Teacher, int Criterion), Evaluation> _evaluations = [];
+    private IReadOnlyList<Numbered<Student>> Students => students.List();
+    private IReadOnlyList<Numbered<Teacher>> Teachers => teachers.List();
+    private IReadOnlyList<Numbered<Criterion>> Criteria => rubric.List();
 
-    private IReadOnlyList<Student> Students => _students.AsReadOnly();
-    private IReadOnlyList<Teacher> Teachers => _teachers.AsReadOnly();
-    private IReadOnlyList<Criterion> Criteria => _criteria.AsReadOnly();
+    private int AddStudent(string name) => students.Add(new Student(Guid.NewGuid(), name));
 
-    private int AddStudent(string name)
-    {
-        _students.Add(new Student(Guid.NewGuid(), name));
-        return _students.Count;
-    }
+    private int AddTeacher(string name, decimal weight = 1m) =>
+        teachers.Add(new Teacher(Guid.NewGuid(), name, weight));
 
-    private int AddTeacher(string name, decimal weight = 1m)
-    {
-        _teachers.Add(new Teacher(Guid.NewGuid(), name, weight));
-        return _teachers.Count;
-    }
-
-    private int AddCriterion(string name, decimal maxScore, decimal weight)
-    {
-        _criteria.Add(new Criterion(Guid.NewGuid(), name, maxScore, weight));
-        return _criteria.Count;
-    }
+    private int AddCriterion(string name, decimal maxScore, decimal weight) =>
+        rubric.Add(new Criterion(Guid.NewGuid(), name, maxScore, weight));
 
     private void SetScore(SetScoreCommand command)
     {
-        var student = Find(_students, command.Student, "студент");
-        var teacher = Find(_teachers, command.Teacher, "преподаватель");
-        var criterion = Find(_criteria, command.Criterion, "критерий");
-        var key = (command.Student, command.Teacher, command.Criterion);
-
-        var evaluation = new Evaluation(student, teacher, criterion, new Score(command.Score));
-        if (!_evaluations.TryAdd(key, evaluation))
+        var key = new EvaluationKey(command.Student, command.Teacher, command.Criterion);
+        var evaluation = CreateEvaluation(key, command.Score);
+        if (!evaluations.TryAdd(key, evaluation.Score))
             throw new InvalidOperationException("Оценка по этой тройке уже выставлена.");
     }
 
     private void CorrectScore(int student, int teacher, int criterion, decimal score)
     {
-        if (!_evaluations.TryGetValue((student, teacher, criterion), out var evaluation))
+        var key = new EvaluationKey(student, teacher, criterion);
+        if (evaluations.FindScore(key) == null)
             throw new InvalidOperationException("Оценка по этой тройке не найдена.");
 
-        evaluation.CorrectScore(new Score(score));
+        var evaluation = CreateEvaluation(key, score);
+
+        if (!evaluations.Update(key, evaluation.Score))
+            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
     }
 
     private void CancelScore(int student, int teacher, int criterion)
     {
-        if (!_evaluations.Remove((student, teacher, criterion)))
+        if (!evaluations.Remove(new EvaluationKey(student, teacher, criterion)))
             throw new InvalidOperationException("Оценка по этой тройке не найдена.");
     }
 
-    private string GetStudentName(int student) => Find(_students, student, "студент").Name;
+    private Evaluation CreateEvaluation(EvaluationKey key, decimal score) =>
+        new(FindStudent(key.Student), FindTeacher(key.Teacher), FindCriterion(key.Criterion), new Score(score));
 
-    private string GetTeacherName(int teacher) => Find(_teachers, teacher, "преподаватель").Name;
+    private Student FindStudent(int number) =>
+        students.FindByNumber(number) ?? throw new InvalidOperationException($"Не найден студент №{number}.");
 
-    private IReadOnlyList<EvaluationRow> GetScores(int student, int? teacher)
+    private Teacher FindTeacher(int number) =>
+        teachers.FindByNumber(number) ?? throw new InvalidOperationException($"Не найден преподаватель №{number}.");
+
+    private Criterion FindCriterion(int number) =>
+        rubric.FindByNumber(number) ?? throw new InvalidOperationException($"Не найден критерий №{number}.");
+
+    private string GetStudentName(int student) => FindStudent(student).Name;
+
+    private string GetTeacherName(int teacher) => FindTeacher(teacher).Name;
+
+    private IReadOnlyList<EvaluationRow> GetScores(int studentNumber, int? teacherNumber)
     {
-        Find(_students, student, "студент");
-
-        return _evaluations
-            .Where(entry => entry.Key.Student == student &&
-                (teacher == null || entry.Key.Teacher == teacher))
-            .Select(entry => new EvaluationRow(
-                entry.Key.Teacher, _teachers[entry.Key.Teacher - 1].Name,
-                entry.Key.Criterion, _criteria[entry.Key.Criterion - 1].Name,
-                entry.Value.Score))
-            .ToArray();
-    }
-
-    private static T Find<T>(IReadOnlyList<T> items, int number, string label)
-    {
-        if (number < 1 || number > items.Count)
-            throw new InvalidOperationException($"Не найден {label} №{number}.");
-
-        return items[number - 1];
+        FindStudent(studentNumber);
+        return evaluations.ListScoresForStudent(studentNumber, teacherNumber);
     }
 }
 
 internal readonly record struct SetScoreCommand(int Student, int Teacher, int Criterion, decimal Score);
-
-internal readonly record struct EvaluationRow(
-    int TeacherNumber, string Teacher, int CriterionNumber, string Criterion, Score Score);

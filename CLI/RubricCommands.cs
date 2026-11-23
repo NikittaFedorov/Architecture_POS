@@ -28,8 +28,8 @@ internal sealed class ListCriteriaCommand(AssessmentSession session) : ConsoleCo
 
     public override void Execute(string input, TextWriter output)
     {
-        ConsoleLists.Write(output, GetCriteria(session).Select(criterion =>
+        ConsoleLists.Write(output, GetCriteria(session), criterion =>
             FormattableString.Invariant(
-                $"{criterion.Name} | максимум {criterion.MaxScore} | вес {criterion.Weight}")));
+                $"{criterion.Name} | максимум {criterion.MaxScore} | вес {criterion.Weight}"));
     }
 }

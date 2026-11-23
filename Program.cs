@@ -1,7 +1,33 @@
 using Architecture_1.Application;
 using Architecture_1.CLI;
+using Architecture_1.Infrastructure;
+using Architecture_1.Infrastructure.DuckDb;
+using Architecture_1.Infrastructure.Sqlite;
 
-var session = new AssessmentSession();
+string provider = Environment.GetEnvironmentVariable("ASSESSMENT_DB_PROVIDER")?.Trim().ToLowerInvariant() ?? "sqlite";
+string? databasePath = Environment.GetEnvironmentVariable("ASSESSMENT_DB_PATH");
+RelationalDatabase database;
+try
+{
+    database = provider switch
+    {
+        "sqlite" => new SqliteDatabase(databasePath ?? "assessment.db"),
+        "duckdb" => new DuckDbDatabase(databasePath ?? "assessment.duckdb"),
+        _ => throw new InvalidOperationException("Укажите sqlite или duckdb в ASSESSMENT_DB_PROVIDER.")
+    };
+}
+catch (InvalidOperationException error)
+{
+    Console.Error.WriteLine(error.Message);
+    return 1;
+}
+
+using var connection = database;
+var session = new AssessmentSession(
+    new SqlStudentRepository(database),
+    new SqlTeacherRepository(database),
+    new SqlRubricRepository(database),
+    new SqlEvaluationRepository(database));
 var exit = new ExitCommand();
 var navigation = new ConsoleNavigation();
 ConsoleCommand[] commands =
@@ -35,3 +61,5 @@ while (!exit.Requested)
     dispatcher.Dispatch(line, Console.Out);
     Console.WriteLine();
 }
+
+return 0;

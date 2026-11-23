@@ -38,9 +38,9 @@ internal sealed partial class AssessmentSession
         protected static void CancelScore(AssessmentSession session, int student, int teacher, int criterion) =>
             session.CancelScore(student, teacher, criterion);
 
-        protected static IReadOnlyList<Student> GetStudents(AssessmentSession session) => session.Students;
-        protected static IReadOnlyList<Teacher> GetTeachers(AssessmentSession session) => session.Teachers;
-        protected static IReadOnlyList<Criterion> GetCriteria(AssessmentSession session) => session.Criteria;
+        protected static IReadOnlyList<Numbered<Student>> GetStudents(AssessmentSession session) => session.Students;
+        protected static IReadOnlyList<Numbered<Teacher>> GetTeachers(AssessmentSession session) => session.Teachers;
+        protected static IReadOnlyList<Numbered<Criterion>> GetCriteria(AssessmentSession session) => session.Criteria;
 
         protected static int FindStudentNumber(AssessmentSession session, string nameOrNumber) =>
             FindNumber(session.Students, nameOrNumber, "студент", student => student.Name);
@@ -74,27 +74,28 @@ internal sealed partial class AssessmentSession
         private static int FindCriterionNumber(AssessmentSession session, string nameOrNumber) =>
             FindNumber(session.Criteria, nameOrNumber, "критерий", criterion => criterion.Name);
 
-        private static int FindNumber<T>(IReadOnlyList<T> items, string nameOrNumber, string label,
+        private static int FindNumber<T>(IReadOnlyList<Numbered<T>> items, string nameOrNumber, string label,
             Func<T, string> getName)
         {
             bool quoted = nameOrNumber.StartsWith('"');
             if (!quoted && int.TryParse(nameOrNumber, NumberStyles.None, CultureInfo.InvariantCulture, out int number))
             {
-                Find(items, number, label);
+                if (!items.Any(item => item.Number == number))
+                    throw new InvalidOperationException($"Не найден {label} №{number}.");
                 return number;
             }
 
             string name = quoted ? nameOrNumber[1..^1].Replace("\"\"", "\"") : nameOrNumber;
             int found = 0;
-            for (int index = 0; index < items.Count; index++)
+            foreach (var item in items)
             {
-                if (!string.Equals(getName(items[index]), name, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(getName(item.Value), name, StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 if (found != 0)
                     throw new InvalidOperationException($"Несколько совпадений: {label} «{name}». Укажите номер.");
 
-                found = index + 1;
+                found = item.Number;
             }
 
             if (found == 0)
