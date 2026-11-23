@@ -1,50 +1,49 @@
+using Architecture_1.Application;
+
 namespace Architecture_1.CLI;
 
-internal class ConsoleMode
+internal sealed class ConsoleMode(AssessmentSession session)
 {
-    public virtual ConsoleMode? Parent => null;
-    public virtual int? TeacherNumber => null;
-    public virtual int? StudentNumber => null;
-    public virtual string Prompt => "> ";
-    public virtual string EvaluationKeySyntax => "<преподаватель> <студент> <критерий>";
+    public string Prompt
+    {
+        get
+        {
+            var scope = session.Scope;
+            if (scope.Teacher is not { } teacher)
+                return "> ";
 
-    public int EvaluationKeyArgumentCount => 1 + (StudentNumber == null ? 1 : 0) + (TeacherNumber == null ? 1 : 0);
-    protected virtual string EvaluationKeyDescription => "преподавателя, студента и критерий";
+            string teacherLabel = $"преподаватель №{teacher.Number} {teacher.Value.Name}";
+            if (scope.Student is { } student)
+                return $"[{teacherLabel} / студент №{student.Number} {student.Value.Name}] > ";
+
+            return $"[{teacherLabel}] > ";
+        }
+    }
+
+    public string EvaluationKeySyntax => session.Scope switch
+    {
+        { StudentNumber: not null } => "<критерий>",
+        { TeacherNumber: not null } => "<студент> <критерий>",
+        _ => "<преподаватель> <студент> <критерий>"
+    };
 
     public string[] ReadEvaluationArguments(string input, bool includesScore)
     {
+        var scope = session.Scope;
+        int keyArgumentCount = 1 + (scope.StudentNumber == null ? 1 : 0) + (scope.TeacherNumber == null ? 1 : 0);
         string[] arguments = CommandArguments.ReadArguments(input);
-        if (arguments.Length != EvaluationKeyArgumentCount + (includesScore ? 1 : 0))
+        if (arguments.Length != keyArgumentCount + (includesScore ? 1 : 0))
         {
+            string expected = scope switch
+            {
+                { StudentNumber: not null } => "критерий",
+                { TeacherNumber: not null } => "студента и критерий",
+                _ => "преподавателя, студента и критерий"
+            };
             string scoreDescription = includesScore ? ", затем балл" : "";
-            throw new FormatException($"Укажите {EvaluationKeyDescription}{scoreDescription}.");
+            throw new FormatException($"Укажите {expected}{scoreDescription}.");
         }
 
         return arguments;
     }
-}
-
-internal sealed class TeacherMode(ConsoleMode parent, int teacher, string name) : ConsoleMode
-{
-    public override ConsoleMode Parent => parent;
-    public int Number => teacher;
-    public string Name => name;
-    public override int? TeacherNumber => Number;
-    public override string Prompt => $"[преподаватель №{teacher} {Name}] > ";
-    public override string EvaluationKeySyntax => "<студент> <критерий>";
-
-    public StudentMode OpenStudent(int student, string studentName) => new(this, student, studentName);
-
-    protected override string EvaluationKeyDescription => "студента и критерий";
-}
-
-internal sealed class StudentMode(TeacherMode parent, int student, string name) : ConsoleMode
-{
-    public override ConsoleMode Parent => parent;
-    public override int? TeacherNumber => parent.Number;
-    public override int? StudentNumber => student;
-    public override string Prompt => $"[преподаватель №{parent.Number} {parent.Name} / студент №{student} {name}] > ";
-    public override string EvaluationKeySyntax => "<критерий>";
-
-    protected override string EvaluationKeyDescription => "критерий";
 }

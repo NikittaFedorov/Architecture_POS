@@ -31,6 +31,18 @@ public class SqlEvaluationRepository(RelationalDatabase database) : IEvaluationR
         database.Query(ListScoresForStudentSql, ReadEvaluationRow,
             ("student", studentNumber), ("teacher", teacherNumber));
 
+    public IReadOnlyList<ReportScoreRow> ListReportScores(int? studentNumber, int? teacherNumber) =>
+        database.Query(ListReportScoresSql, ReadReportScore,
+            ("student", studentNumber), ("teacher", teacherNumber));
+
+    private static ReportScoreRow ReadReportScore(DbDataReader row)
+    {
+        int student = row.GetInt32(row.GetOrdinal("student"));
+        int teacher = row.GetInt32(row.GetOrdinal("teacher"));
+        int criterion = row.GetInt32(row.GetOrdinal("criterion"));
+        return new ReportScoreRow(student, teacher, criterion, ReadScore(row).Value);
+    }
+
     private static EvaluationRow ReadEvaluationRow(DbDataReader row)
     {
         int teacherNumber = row.GetInt32(row.GetOrdinal("teacher"));
@@ -78,6 +90,14 @@ public class SqlEvaluationRepository(RelationalDatabase database) : IEvaluationR
         DELETE FROM evaluations
         WHERE student = $student AND teacher = $teacher AND criterion = $criterion
         RETURNING number
+        """;
+
+    protected virtual string ListReportScoresSql => """
+        SELECT student, teacher, criterion, score_tenths
+        FROM evaluations
+        WHERE ($student IS NULL OR student = $student)
+          AND ($teacher IS NULL OR teacher = $teacher)
+        ORDER BY student, criterion, teacher
         """;
 
     protected virtual string ListScoresForStudentSql => """

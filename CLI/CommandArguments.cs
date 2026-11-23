@@ -33,6 +33,9 @@ internal static class CommandArguments
         return arguments[0];
     }
 
+    public static string ReadText(string argument) =>
+        argument.StartsWith('"') ? argument[1..^1].Replace("\"\"", "\"") : argument;
+
     public static decimal ReadDecimal(string input)
     {
         const NumberStyles style = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint;

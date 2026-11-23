@@ -30,6 +30,7 @@ public interface IEvaluationRepository
     bool Update(EvaluationKey key, Score score);
     bool Remove(EvaluationKey key);
     IReadOnlyList<EvaluationRow> ListScoresForStudent(int studentNumber, int? teacherNumber);
+    IReadOnlyList<ReportScoreRow> ListReportScores(int? studentNumber, int? teacherNumber);
 }
 
 public readonly record struct Numbered<T>(int Number, T Value);
@@ -38,3 +39,6 @@ public readonly record struct EvaluationKey(int Student, int Teacher, int Criter
 
 public readonly record struct EvaluationRow(
     int TeacherNumber, string Teacher, int CriterionNumber, string Criterion, Score Score);
+
+public readonly record struct ReportScoreRow(
+    int StudentNumber, int TeacherNumber, int CriterionNumber, decimal Score);

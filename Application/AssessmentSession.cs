@@ -1,3 +1,4 @@
+using Architecture_1.Application.Reports;
 using Architecture_1.Domain;
 
 namespace Architecture_1.Application;
@@ -8,6 +9,36 @@ internal sealed partial class AssessmentSession(
     IRubricRepository rubric,
     IEvaluationRepository evaluations)
 {
+    public AssessmentScope Scope { get; private set; } = new(null, null);
+
+    public Teacher SelectTeacher(int number)
+    {
+        if (!Scope.CanSelectTeacher)
+            throw new InvalidOperationException("Сначала вернитесь в главный режим.");
+
+        Teacher teacher = FindTeacher(number);
+        Scope = new AssessmentScope(new Numbered<Teacher>(number, teacher), null);
+        return teacher;
+    }
+
+    public Student SelectStudent(int number)
+    {
+        if (!Scope.CanSelectStudent)
+            throw new InvalidOperationException("Сначала откройте режим преподавателя.");
+
+        Student student = FindStudent(number);
+        Scope = new AssessmentScope(Scope.Teacher, new Numbered<Student>(number, student));
+        return student;
+    }
+
+    public void GoBack()
+    {
+        if (!Scope.CanGoBack)
+            throw new InvalidOperationException("Вы уже в главном режиме.");
+
+        Scope = new AssessmentScope(Scope.Student.HasValue ? Scope.Teacher : null, null);
+    }
+
     private IReadOnlyList<Numbered<Student>> Students => students.List();
     private IReadOnlyList<Numbered<Teacher>> Teachers => teachers.List();
     private IReadOnlyList<Numbered<Criterion>> Criteria => rubric.List();
@@ -20,9 +51,16 @@ internal sealed partial class AssessmentSession(
     private int AddCriterion(string name, decimal maxScore, decimal weight) =>
         rubric.Add(new Criterion(Guid.NewGuid(), name, maxScore, weight));
 
+    private EvaluationKey CreateScopedEvaluationKey(int student, int teacher, int criterion)
+    {
+        Scope.EnsureTeacherAllowed(teacher);
+        Scope.EnsureStudentAllowed(student);
+        return new EvaluationKey(student, teacher, criterion);
+    }
+
     private void SetScore(SetScoreCommand command)
     {
-        var key = new EvaluationKey(command.Student, command.Teacher, command.Criterion);
+        var key = CreateScopedEvaluationKey(command.Student, command.Teacher, command.Criterion);
         var evaluation = CreateEvaluation(key, command.Score);
         if (!evaluations.TryAdd(key, evaluation.Score))
             throw new InvalidOperationException("Оценка по этой тройке уже выставлена.");
@@ -30,7 +68,7 @@ internal sealed partial class AssessmentSession(
 
     private void CorrectScore(int student, int teacher, int criterion, decimal score)
     {
-        var key = new EvaluationKey(student, teacher, criterion);
+        var key = CreateScopedEvaluationKey(student, teacher, criterion);
         if (evaluations.FindScore(key) == null)
             throw new InvalidOperationException("Оценка по этой тройке не найдена.");
 
@@ -42,7 +80,8 @@ internal sealed partial class AssessmentSession(
 
     private void CancelScore(int student, int teacher, int criterion)
     {
-        if (!evaluations.Remove(new EvaluationKey(student, teacher, criterion)))
+        var key = CreateScopedEvaluationKey(student, teacher, criterion);
+        if (!evaluations.Remove(key))
             throw new InvalidOperationException("Оценка по этой тройке не найдена.");
     }
 
@@ -58,14 +97,14 @@ internal sealed partial class AssessmentSession(
     private Criterion FindCriterion(int number) =>
         rubric.FindByNumber(number) ?? throw new InvalidOperationException($"Не найден критерий №{number}.");
 
-    private string GetStudentName(int student) => FindStudent(student).Name;
+    public AssessmentReportBuilder CreateReportBuilder() =>
+        new(students, teachers, rubric, evaluations, Scope);
 
-    private string GetTeacherName(int teacher) => FindTeacher(teacher).Name;
-
-    private IReadOnlyList<EvaluationRow> GetScores(int studentNumber, int? teacherNumber)
+    private IReadOnlyList<EvaluationRow> GetScores(int studentNumber)
     {
+        Scope.EnsureStudentAllowed(studentNumber);
         FindStudent(studentNumber);
-        return evaluations.ListScoresForStudent(studentNumber, teacherNumber);
+        return evaluations.ListScoresForStudent(studentNumber, Scope.TeacherNumber);
     }
 }
 

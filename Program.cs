@@ -1,4 +1,5 @@
 using Architecture_1.Application;
+using Architecture_1.Application.Reports;
 using Architecture_1.CLI;
 using Architecture_1.Infrastructure;
 using Architecture_1.Infrastructure.DuckDb;
@@ -29,7 +30,8 @@ var session = new AssessmentSession(
     new SqlRubricRepository(database),
     new SqlEvaluationRepository(database));
 var exit = new ExitCommand();
-var navigation = new ConsoleNavigation();
+var mode = new ConsoleMode(session);
+IReadOnlyList<IReportExporter> reportExporters = [new JsonReportExporter()];
 ConsoleCommand[] commands =
 [
     new AddStudentCommand(session),
@@ -38,13 +40,15 @@ ConsoleCommand[] commands =
     new ListTeachersCommand(session),
     new AddCriterionCommand(session),
     new ListCriteriaCommand(session),
-    new SetScoreConsoleCommand(session, navigation),
-    new CorrectScoreConsoleCommand(session, navigation),
-    new CancelScoreConsoleCommand(session, navigation),
-    new ListScoresCommand(session, navigation),
-    new ConsoleNavigation.EnterTeacherCommand(session, navigation),
-    new ConsoleNavigation.EnterStudentCommand(session, navigation),
-    new ConsoleNavigation.BackCommand(navigation),
+    new SetScoreConsoleCommand(session, mode),
+    new CorrectScoreConsoleCommand(session, mode),
+    new CancelScoreConsoleCommand(session, mode),
+    new ListScoresCommand(session),
+    new ShowReportCommand(session),
+    new ExportReportCommand(session, reportExporters),
+    new EnterTeacherCommand(session),
+    new EnterStudentCommand(session),
+    new BackCommand(session),
     exit,
 ];
 var dispatcher = new CommandDispatcher(commands.Append(new HelpCommand(commands)));
@@ -53,7 +57,7 @@ Console.WriteLine("ПОС. Введите help для списка команд.
 
 while (!exit.Requested)
 {
-    Console.Write(navigation.Mode.Prompt);
+    Console.Write(mode.Prompt);
     string? line = Console.ReadLine();
     if (line == null)
         break;

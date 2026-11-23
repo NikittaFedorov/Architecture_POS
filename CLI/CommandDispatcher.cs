@@ -30,7 +30,7 @@ internal sealed class CommandDispatcher
         var input = parts.Length == 2 ? parts[1].Trim() : "";
         if (command.Arguments.Length == 0 && input.Length > 0)
         {
-            output.WriteLine($"Ошибка: синтаксис команды — {command.Usage}.");
+            output.WriteLine($"Ошибка: синтаксис команды - {command.Usage}.");
             return;
         }
 

@@ -49,11 +49,11 @@ internal sealed partial class AssessmentSession
             FindNumber(session.Teachers, nameOrNumber, "преподаватель", teacher => teacher.Name);
 
         protected static (int Teacher, int Student, int Criterion) FindEvaluationNumbers(
-            AssessmentSession session, ConsoleMode mode, string[] arguments)
+            AssessmentSession session, string[] arguments)
         {
             int argumentIndex = 0;
-            int? teacher = mode.TeacherNumber;
-            int? student = mode.StudentNumber;
+            int? teacher = session.Scope.TeacherNumber;
+            int? student = session.Scope.StudentNumber;
 
             if (teacher == null)
             {
@@ -71,7 +71,7 @@ internal sealed partial class AssessmentSession
             return (teacher.Value, student.Value, criterion);
         }
 
-        private static int FindCriterionNumber(AssessmentSession session, string nameOrNumber) =>
+        protected static int FindCriterionNumber(AssessmentSession session, string nameOrNumber) =>
             FindNumber(session.Criteria, nameOrNumber, "критерий", criterion => criterion.Name);
 
         private static int FindNumber<T>(IReadOnlyList<Numbered<T>> items, string nameOrNumber, string label,
@@ -85,7 +85,7 @@ internal sealed partial class AssessmentSession
                 return number;
             }
 
-            string name = quoted ? nameOrNumber[1..^1].Replace("\"\"", "\"") : nameOrNumber;
+            string name = CommandArguments.ReadText(nameOrNumber);
             int found = 0;
             foreach (var item in items)
             {
@@ -104,14 +104,7 @@ internal sealed partial class AssessmentSession
             return found;
         }
 
-        protected static string GetStudentName(AssessmentSession session, int student) =>
-            session.GetStudentName(student);
-
-        protected static string GetTeacherName(AssessmentSession session, int teacher) =>
-            session.GetTeacherName(teacher);
-
-        protected static IReadOnlyList<EvaluationRow> GetScores(
-            AssessmentSession session, int student, int? teacher) =>
-            session.GetScores(student, teacher);
+        protected static IReadOnlyList<EvaluationRow> GetScores(AssessmentSession session, int student) =>
+            session.GetScores(student);
     }
 }
