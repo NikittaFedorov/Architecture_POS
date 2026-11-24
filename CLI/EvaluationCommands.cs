@@ -1,6 +1,6 @@
-using Architecture_1.Application;
+using POS.Application;
 
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal sealed class SetScoreConsoleCommand(AssessmentSession session, ConsoleMode mode) : ConsoleCommand
 {
@@ -55,12 +55,12 @@ internal sealed class CancelScoreConsoleCommand(AssessmentSession session, Conso
 internal sealed class ListScoresCommand(AssessmentSession session) : ConsoleCommand
 {
     public override string Name => "scores";
-    public override string Arguments => session.Scope.StudentNumber == null ? "<студент>" : "";
+    public override string Arguments => session.AuthScope.StudentNumber == null ? "<студент>" : "";
     public override string Description => "Показать оценки студента.";
 
     public override void Execute(string input, TextWriter output)
     {
-        int student = session.Scope.StudentNumber ?? FindStudentNumber(session, CommandArguments.ReadSingleArgument(input, "студента"));
+        int student = session.AuthScope.StudentNumber ?? FindStudentNumber(session, CommandArguments.ReadSingleArgument(input, "студента"));
         var scores = GetScores(session, student);
         if (scores.Count == 0)
             output.WriteLine("Оценок пока нет.");

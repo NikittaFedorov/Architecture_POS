@@ -1,7 +1,7 @@
 using System.Data.Common;
 using DuckDB.NET.Data;
 
-namespace Architecture_1.Infrastructure.DuckDb;
+namespace POS.Infrastructure.DuckDb;
 
 public sealed class DuckDbDatabase(string path) : RelationalDatabase(
     new DuckDBConnection(new DbConnectionStringBuilder { ["Data Source"] = path }.ToString()),

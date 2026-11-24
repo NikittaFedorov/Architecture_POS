@@ -1,8 +1,8 @@
-using Architecture_1.Application;
-using Architecture_1.Domain;
+using POS.Application;
+using POS.Domain;
 using System.Data.Common;
 
-namespace Architecture_1.Infrastructure;
+namespace POS.Infrastructure;
 
 public class SqlStudentRepository(RelationalDatabase database) : IStudentRepository
 {

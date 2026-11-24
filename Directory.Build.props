@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'POS'">
+    <DatabaseProvider Condition="'$(DatabaseProvider)' == ''">Sqlite</DatabaseProvider>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsProjectName>$(MSBuildProjectName).$(DatabaseProvider.ToLowerInvariant())</ArtifactsProjectName>
+  </PropertyGroup>
+</Project>

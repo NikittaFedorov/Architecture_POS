@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Architecture_1.Application.Reports;
+using POS.Application.Reports;
 
-namespace Architecture_1.CLI;
+namespace POS.Infrastructure;
 
-internal sealed class JsonReportExporter : IReportExporter
+public sealed class JsonReportExporter : IReportExporter
 {
     private static readonly JsonSerializerOptions Options = new()
     {

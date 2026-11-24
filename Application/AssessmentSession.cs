@@ -1,7 +1,7 @@
-using Architecture_1.Application.Reports;
-using Architecture_1.Domain;
+using POS.Application.Reports;
+using POS.Domain;
 
-namespace Architecture_1.Application;
+namespace POS.Application;
 
 internal sealed partial class AssessmentSession(
     IStudentRepository students,
@@ -9,34 +9,34 @@ internal sealed partial class AssessmentSession(
     IRubricRepository rubric,
     IEvaluationRepository evaluations)
 {
-    public AssessmentScope Scope { get; private set; } = new(null, null);
+    public AssessmentScope AuthScope { get; private set; } = new(null, null);
 
     public Teacher SelectTeacher(int number)
     {
-        if (!Scope.CanSelectTeacher)
+        if (!AuthScope.CanSelectTeacher)
             throw new InvalidOperationException("Сначала вернитесь в главный режим.");
 
         Teacher teacher = FindTeacher(number);
-        Scope = new AssessmentScope(new Numbered<Teacher>(number, teacher), null);
+        AuthScope = new AssessmentScope(new Numbered<Teacher>(number, teacher), null);
         return teacher;
     }
 
     public Student SelectStudent(int number)
     {
-        if (!Scope.CanSelectStudent)
+        if (!AuthScope.CanSelectStudent)
             throw new InvalidOperationException("Сначала откройте режим преподавателя.");
 
         Student student = FindStudent(number);
-        Scope = new AssessmentScope(Scope.Teacher, new Numbered<Student>(number, student));
+        AuthScope = new AssessmentScope(AuthScope.Teacher, new Numbered<Student>(number, student));
         return student;
     }
 
     public void GoBack()
     {
-        if (!Scope.CanGoBack)
+        if (!AuthScope.CanGoBack)
             throw new InvalidOperationException("Вы уже в главном режиме.");
 
-        Scope = new AssessmentScope(Scope.Student.HasValue ? Scope.Teacher : null, null);
+        AuthScope = new AssessmentScope(AuthScope.Student.HasValue ? AuthScope.Teacher : null, null);
     }
 
     private IReadOnlyList<Numbered<Student>> Students => students.List();
@@ -53,8 +53,8 @@ internal sealed partial class AssessmentSession(
 
     private EvaluationKey CreateScopedEvaluationKey(int student, int teacher, int criterion)
     {
-        Scope.EnsureTeacherAllowed(teacher);
-        Scope.EnsureStudentAllowed(student);
+        AuthScope.EnsureTeacherAllowed(teacher);
+        AuthScope.EnsureStudentAllowed(student);
         return new EvaluationKey(student, teacher, criterion);
     }
 
@@ -98,13 +98,13 @@ internal sealed partial class AssessmentSession(
         rubric.FindByNumber(number) ?? throw new InvalidOperationException($"Не найден критерий №{number}.");
 
     public AssessmentReportBuilder CreateReportBuilder() =>
-        new(students, teachers, rubric, evaluations, Scope);
+        new(students, teachers, rubric, evaluations, AuthScope);
 
     private IReadOnlyList<EvaluationRow> GetScores(int studentNumber)
     {
-        Scope.EnsureStudentAllowed(studentNumber);
+        AuthScope.EnsureStudentAllowed(studentNumber);
         FindStudent(studentNumber);
-        return evaluations.ListScoresForStudent(studentNumber, Scope.TeacherNumber);
+        return evaluations.ListScoresForStudent(studentNumber, AuthScope.TeacherNumber);
     }
 }
 

@@ -1,7 +1,7 @@
 using System.Data.Common;
 using System.Globalization;
 
-namespace Architecture_1.Infrastructure;
+namespace POS.Infrastructure;
 
 public abstract class RelationalDatabase : IDisposable
 {

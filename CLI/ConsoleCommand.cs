@@ -1,10 +1,10 @@
-global using ConsoleCommand = Architecture_1.Application.AssessmentSession.ConsoleCommand;
+global using ConsoleCommand = POS.Application.AssessmentSession.ConsoleCommand;
 
 using System.Globalization;
-using Architecture_1.CLI;
-using Architecture_1.Domain;
+using POS.CLI;
+using POS.Domain;
 
-namespace Architecture_1.Application;
+namespace POS.Application;
 
 internal sealed partial class AssessmentSession
 {
@@ -52,8 +52,8 @@ internal sealed partial class AssessmentSession
             AssessmentSession session, string[] arguments)
         {
             int argumentIndex = 0;
-            int? teacher = session.Scope.TeacherNumber;
-            int? student = session.Scope.StudentNumber;
+            int? teacher = session.AuthScope.TeacherNumber;
+            int? student = session.AuthScope.StudentNumber;
 
             if (teacher == null)
             {

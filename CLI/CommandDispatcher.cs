@@ -1,12 +1,12 @@
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal sealed class CommandDispatcher
 {
     private readonly Dictionary<string, ConsoleCommand> _commands;
 
-    public CommandDispatcher(IEnumerable<ConsoleCommand> commands)
+    public CommandDispatcher(IEnumerable<ConsoleCommand> commands, HelpCommand help, ExitCommand exit)
     {
-        _commands = commands.ToDictionary(command => command.Name, StringComparer.Ordinal);
+        _commands = commands.Append(help).Append(exit).ToDictionary(command => command.Name, StringComparer.Ordinal);
     }
 
     public void Dispatch(string line, TextWriter output)

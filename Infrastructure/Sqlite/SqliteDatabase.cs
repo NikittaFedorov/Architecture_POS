@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace Architecture_1.Infrastructure.Sqlite;
+namespace POS.Infrastructure.Sqlite;
 
 public sealed class SqliteDatabase(string path) : RelationalDatabase(
     new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, ForeignKeys = true }.ToString()),

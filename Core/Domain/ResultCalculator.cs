@@ -1,4 +1,4 @@
-namespace Architecture_1.Domain;
+namespace POS.Domain;
 
 public readonly record struct WeightedScore(Score Score, decimal Weight);
 

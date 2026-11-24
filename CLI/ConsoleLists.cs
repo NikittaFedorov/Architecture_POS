@@ -1,6 +1,6 @@
-using Architecture_1.Application;
+using POS.Application;
 
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal static class ConsoleLists
 {

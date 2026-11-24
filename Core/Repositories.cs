@@ -1,6 +1,6 @@
-using Architecture_1.Domain;
+using POS.Domain;
 
-namespace Architecture_1.Application;
+namespace POS.Application;
 
 public interface IStudentRepository
 {

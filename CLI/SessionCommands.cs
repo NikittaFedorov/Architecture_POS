@@ -1,13 +1,13 @@
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
-internal sealed class HelpCommand(IReadOnlyList<ConsoleCommand> commands) : ConsoleCommand
+internal sealed class HelpCommand(IEnumerable<ConsoleCommand> commands, ExitCommand exit) : ConsoleCommand
 {
     public override string Name => "help";
     public override string Description => "Показать список команд.";
 
     public override void Execute(string input, TextWriter output)
     {
-        foreach (var command in commands.Append(this).Where(command => command.IsAvailable)
+        foreach (var command in commands.Append(exit).Append(this).Where(command => command.IsAvailable)
                      .OrderBy(command => command.Name, StringComparer.Ordinal))
         {
             output.WriteLine(command.Usage);

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal static class CommandArguments
 {

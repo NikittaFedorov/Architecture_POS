@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DatabaseProvider)' == 'DuckDb'">
+    <DefineConstants>$(DefineConstants);DUCKDB</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="CLI/Architecture.Cli.csproj" />
+    <ProjectReference Include="Infrastructure/Export/Architecture.ReportExport.csproj" />
+    <ProjectReference Include="Infrastructure/Sqlite/Architecture.Sqlite.csproj" Condition="'$(DatabaseProvider)' == 'Sqlite'" />
+    <ProjectReference Include="Infrastructure/DuckDb/Architecture.DuckDb.csproj" Condition="'$(DatabaseProvider)' == 'DuckDb'" />
+  </ItemGroup>
+
+  <Target Name="ValidateDatabaseProvider" BeforeTargets="CollectPackageReferences;PrepareForBuild"
+          Condition="'$(DatabaseProvider)' != 'Sqlite' and '$(DatabaseProvider)' != 'DuckDb'">
+    <Error Text="DatabaseProvider must be Sqlite or DuckDb." />
+  </Target>
+</Project>

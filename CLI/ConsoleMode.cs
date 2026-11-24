@@ -1,6 +1,6 @@
-using Architecture_1.Application;
+using POS.Application;
 
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal sealed class ConsoleMode(AssessmentSession session)
 {
@@ -8,7 +8,7 @@ internal sealed class ConsoleMode(AssessmentSession session)
     {
         get
         {
-            var scope = session.Scope;
+            var scope = session.AuthScope;
             if (scope.Teacher is not { } teacher)
                 return "> ";
 
@@ -20,7 +20,7 @@ internal sealed class ConsoleMode(AssessmentSession session)
         }
     }
 
-    public string EvaluationKeySyntax => session.Scope switch
+    public string EvaluationKeySyntax => session.AuthScope switch
     {
         { StudentNumber: not null } => "<критерий>",
         { TeacherNumber: not null } => "<студент> <критерий>",
@@ -29,7 +29,7 @@ internal sealed class ConsoleMode(AssessmentSession session)
 
     public string[] ReadEvaluationArguments(string input, bool includesScore)
     {
-        var scope = session.Scope;
+        var scope = session.AuthScope;
         int keyArgumentCount = 1 + (scope.StudentNumber == null ? 1 : 0) + (scope.TeacherNumber == null ? 1 : 0);
         string[] arguments = CommandArguments.ReadArguments(input);
         if (arguments.Length != keyArgumentCount + (includesScore ? 1 : 0))

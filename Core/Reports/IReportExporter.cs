@@ -1,6 +1,6 @@
-namespace Architecture_1.Application.Reports;
+namespace POS.Application.Reports;
 
-internal interface IReportExporter
+public interface IReportExporter
 {
     string Format { get; }
     void Write(AssessmentReport report, Stream output);

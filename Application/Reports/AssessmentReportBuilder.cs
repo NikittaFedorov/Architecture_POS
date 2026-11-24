@@ -1,6 +1,6 @@
-using Architecture_1.Domain;
+using POS.Domain;
 
-namespace Architecture_1.Application.Reports;
+namespace POS.Application.Reports;
 
 internal sealed class AssessmentReportBuilder(
     IStudentRepository students,

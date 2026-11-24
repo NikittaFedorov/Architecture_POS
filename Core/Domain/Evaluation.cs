@@ -1,4 +1,4 @@
-namespace Architecture_1.Domain;
+namespace POS.Domain;
 
 public sealed class Evaluation
 {

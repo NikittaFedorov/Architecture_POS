@@ -1,13 +1,13 @@
-using Architecture_1.Application;
+using POS.Application;
 
-namespace Architecture_1.CLI;
+namespace POS.CLI;
 
 internal sealed class EnterTeacherCommand(AssessmentSession session) : ConsoleCommand
 {
     public override string Name => "teacher";
     public override string Arguments => "<преподаватель>";
     public override string Description => "Открыть режим преподавателя.";
-    public override bool IsAvailable => session.Scope.CanSelectTeacher;
+    public override bool IsAvailable => session.AuthScope.CanSelectTeacher;
 
     public override void Execute(string input, TextWriter output)
     {
@@ -23,7 +23,7 @@ internal sealed class EnterStudentCommand(AssessmentSession session) : ConsoleCo
     public override string Name => "student";
     public override string Arguments => "<студент>";
     public override string Description => "Открыть оценки одного студента.";
-    public override bool IsAvailable => session.Scope.CanSelectStudent;
+    public override bool IsAvailable => session.AuthScope.CanSelectStudent;
 
     public override void Execute(string input, TextWriter output)
     {
@@ -38,7 +38,7 @@ internal sealed class BackCommand(AssessmentSession session) : ConsoleCommand
 {
     public override string Name => "back";
     public override string Description => "Вернуться на один уровень.";
-    public override bool IsAvailable => session.Scope.CanGoBack;
+    public override bool IsAvailable => session.AuthScope.CanGoBack;
 
     public override void Execute(string input, TextWriter output)
     {

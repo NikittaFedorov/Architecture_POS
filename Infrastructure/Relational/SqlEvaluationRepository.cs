@@ -1,8 +1,8 @@
 using System.Data.Common;
-using Architecture_1.Application;
-using Architecture_1.Domain;
+using POS.Application;
+using POS.Domain;
 
-namespace Architecture_1.Infrastructure;
+namespace POS.Infrastructure;
 
 public class SqlEvaluationRepository(RelationalDatabase database) : IEvaluationRepository
 {
