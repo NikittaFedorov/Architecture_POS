@@ -31,12 +31,22 @@ internal sealed partial class AssessmentSession
         protected static void SetScore(AssessmentSession session, SetScoreCommand command) =>
             session.SetScore(command);
 
-        protected static void CorrectScore(
+        protected static Score CorrectScore(
             AssessmentSession session, int student, int teacher, int criterion, decimal score) =>
             session.CorrectScore(student, teacher, criterion, score);
 
-        protected static void CancelScore(AssessmentSession session, int student, int teacher, int criterion) =>
+        protected static Score CancelScore(AssessmentSession session, int student, int teacher, int criterion) =>
             session.CancelScore(student, teacher, criterion);
+
+        protected static string DescribeEvaluation(
+            AssessmentSession session, int studentNumber, int teacherNumber, int criterionNumber)
+        {
+            var student = session.FindStudent(studentNumber);
+            var teacher = session.FindTeacher(teacherNumber);
+            var criterion = session.FindCriterion(criterionNumber);
+            return FormattableString.Invariant(
+                $"студент №{studentNumber} {student.Name} | преподаватель №{teacherNumber} {teacher.Name} | критерий №{criterionNumber} {criterion.Name} | максимум {criterion.MaxScore}");
+        }
 
         protected static IReadOnlyList<Numbered<Student>> GetStudents(AssessmentSession session) => session.Students;
         protected static IReadOnlyList<Numbered<Teacher>> GetTeachers(AssessmentSession session) => session.Teachers;

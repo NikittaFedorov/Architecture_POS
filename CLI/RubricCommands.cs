@@ -17,7 +17,8 @@ internal sealed class AddCriterionCommand(AssessmentSession session) : ConsoleCo
         decimal maximum = CommandArguments.ReadDecimal(fields[1]);
         decimal weight = CommandArguments.ReadDecimal(fields[2]);
         int number = AddCriterion(session, fields[0], maximum, weight);
-        output.WriteLine($"Критерий №{number}.");
+        output.WriteLine(FormattableString.Invariant(
+            $"Добавлен критерий №{number}: {fields[0]} | максимум {maximum} | вес {weight}."));
     }
 }
 

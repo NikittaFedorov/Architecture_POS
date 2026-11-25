@@ -1,4 +1,5 @@
 using System.Globalization;
+using POS.Domain;
 
 namespace POS.Application.Reports;
 
@@ -9,80 +10,124 @@ public static class ReportTextFormatter
         var students = report.Students.ToDictionary(student => student.Number);
         var teachers = report.Teachers.ToDictionary(teacher => teacher.Number);
         var criteria = report.Rubric.ToDictionary(criterion => criterion.Number);
-        bool showsTotal = report.GroupBy is ReportGrouping.Student or ReportGrouping.Teacher;
-        string scoreWeightLabel = (report.GroupBy, report.UsesTeacherWeights) switch
-        {
-            (ReportGrouping.Teacher, _) => "вес студента",
-            (_, true) => "вес преподавателя",
-            _ => "вес оценки"
-        };
         output.WriteLine(report.GroupBy switch
         {
             ReportGrouping.Teacher => "Отчёт по преподавателям",
             ReportGrouping.Criterion => "Отчёт по критериям",
             _ => "Отчёт по студентам"
         });
-        output.WriteLine((report.GroupBy, report.UsesTeacherWeights) switch
-        {
-            (_, true) => "Среднее по каждому критерию учитывает веса преподавателей, выставивших баллы.",
-            (ReportGrouping.Teacher, _) => "В среднем по каждому критерию все оценённые студенты имеют одинаковый вес.",
-            _ => "В среднем по каждому критерию все баллы имеют одинаковый вес."
-        });
-        if (showsTotal)
-            output.WriteLine("Общий итог учитывает долю от максимума и вес каждого критерия с оценками.");
+        output.WriteLine(report.AverageMethod == AverageMethod.Weighted
+            ? "Взвешенное среднее."
+            : "Обычное среднее.");
 
         foreach (var group in report.Groups)
         {
             output.WriteLine();
             output.WriteLine(report.GroupBy switch
             {
-                ReportGrouping.Teacher => $"Преподаватель №{group.Number} {teachers[group.Number].Name}",
-                ReportGrouping.Criterion => $"Критерий №{group.Number} {criteria[group.Number].Name}",
-                _ => $"Студент №{group.Number} {students[group.Number].Name}"
+                ReportGrouping.Teacher => $"Преподаватель №{group.Key} {teachers[group.Key].Name}",
+                ReportGrouping.Criterion => $"Критерий №{group.Key} {criteria[group.Key].Name}",
+                _ => $"Студент №{group.Key} {students[group.Key].Name}"
             });
 
-            string countLabel = report.GroupBy == ReportGrouping.Student ? "преподавателей" : "оценок";
-            var scoresByCriterion = group.Scores.ToLookup(score => score.CriterionNumber);
-            foreach (var result in group.StatisticsByCriterion)
+            switch (report.GroupBy)
             {
-                var criterion = criteria[result.CriterionNumber];
-                string weightInTotal = showsTotal && result.Average.HasValue
-                    ? $" | вес критерия {criterion.Weight.ToString(CultureInfo.InvariantCulture)}"
-                    : "";
-                output.WriteLine($"№{criterion.Number} {criterion.Name} | максимум {Format(criterion.MaxScore)}"
-                    + $" | среднее {Format(result.Average)} | мин. {Format(result.LowestScore)}"
-                    + $" | макс. {Format(result.HighestScore)} | {countLabel} {result.ScoreCount}{weightInTotal}");
+                case ReportGrouping.Teacher:
+                    WriteTeacherDetails(group);
+                    break;
+                case ReportGrouping.Criterion:
+                    WriteCriterionDetails(group);
+                    break;
+                default:
+                    WriteStudentDetails(group);
+                    break;
+            }
 
-                foreach (var score in scoresByCriterion[result.CriterionNumber])
+            WriteTotal(group, report.GroupBy switch
+            {
+                ReportGrouping.Teacher => "Итог преподавателя по студентам",
+                ReportGrouping.Criterion => "Итог критерия по преподавателям",
+                _ => "Итог студента по критериям"
+            });
+        }
+
+        void WriteTeacherDetails(TableGroup<ReportScoreRow> teacher)
+        {
+            foreach (var student in teacher.Children)
+            {
+                output.WriteLine($"  {StudentLabel(student.Key)}");
+                foreach (var criterion in student.Children)
                 {
-                    string details = report.GroupBy switch
+                    var entry = criteria[criterion.Key];
+                    string label = $"    №{entry.Number} {entry.Name}";
+                    if (criterion.Average is not decimal score)
                     {
-                        ReportGrouping.Teacher =>
-                            $"Студент №{score.StudentNumber} {students[score.StudentNumber].Name}",
-                        ReportGrouping.Criterion =>
-                            $"Преподаватель №{score.TeacherNumber} {teachers[score.TeacherNumber].Name}"
-                            + $" -> студент №{score.StudentNumber} {students[score.StudentNumber].Name}",
-                        _ => $"Преподаватель №{score.TeacherNumber} {teachers[score.TeacherNumber].Name}"
-                    };
-                    decimal weight = report.UsesTeacherWeights ? teachers[score.TeacherNumber].Weight : 1m;
-                    output.WriteLine($"  {details} | балл {Format(score.Score)}"
-                        + $" | {scoreWeightLabel} {weight.ToString(CultureInfo.InvariantCulture)}");
-                }
-            }
+                        output.WriteLine($"{label} | балл -");
+                        continue;
+                    }
 
-            if (group.Total is decimal total)
-            {
-                var assessedNames = group.StatisticsByCriterion.Where(result => result.ScoreCount > 0)
-                    .Select(result => $"«{criteria[result.CriterionNumber].Name}»");
-                output.WriteLine($"Итог по критериям {string.Join(", ", assessedNames)} - "
-                    + total.ToString("0.####%", CultureInfo.InvariantCulture));
-            }
-            else if (showsTotal)
-            {
-                output.WriteLine("Итог - пока нет оценок по выбранным критериям.");
+                    WriteScore(score, label, null, $" | максимум {Format(entry.MaxScore)}"
+                        + WeightLabel("вес критерия", criterion.AppliedWeight));
+                }
+                WriteTotal(student, "  Итог студента по критериям");
             }
         }
+
+        void WriteCriterionDetails(TableGroup<ReportScoreRow> criterion)
+        {
+            WriteCriterion(criterion);
+            foreach (var teacher in criterion.Children)
+            {
+                output.WriteLine($"  {TeacherLabel(teacher.Key)}");
+                foreach (var student in teacher.Children)
+                {
+                    foreach (var score in student.Rows)
+                        WriteScore(score.Score, $"    {StudentLabel(student.Key)}", teacher.AppliedWeight);
+                }
+                WriteTotal(teacher, "  Итог преподавателя по студентам");
+            }
+        }
+
+        void WriteStudentDetails(TableGroup<ReportScoreRow> student)
+        {
+            foreach (var criterion in student.Children)
+            {
+                WriteCriterion(criterion);
+                foreach (var teacher in criterion.Children)
+                {
+                    foreach (var score in teacher.Rows)
+                        WriteScore(score.Score, $"  {TeacherLabel(teacher.Key)}", teacher.AppliedWeight);
+                }
+                WriteTotal(criterion, "  Итог критерия по преподавателям");
+            }
+        }
+
+        void WriteTotal(TableGroup<ReportScoreRow> group, string label)
+        {
+            string result = group.Total is decimal total
+                ? total.ToString("0.####%", CultureInfo.InvariantCulture)
+                : "пока нет оценок";
+            output.WriteLine($"{label} - {result}.");
+        }
+
+        string TeacherLabel(int number) => $"Преподаватель №{number} {teachers[number].Name}";
+        string StudentLabel(int number) => $"Студент №{number} {students[number].Name}";
+
+        void WriteCriterion(TableGroup<ReportScoreRow> group)
+        {
+            var criterion = criteria[group.Key];
+            output.WriteLine($"№{criterion.Number} {criterion.Name} | максимум {Format(criterion.MaxScore)}"
+                + $" | среднее {Format(group.Average)} | мин. {Format(group.Minimum)}"
+                + $" | макс. {Format(group.Maximum)} | оценок {group.Rows.Count}"
+                + WeightLabel("вес критерия", group.AppliedWeight));
+        }
+
+        void WriteScore(decimal score, string label, decimal? weight, string details = "") =>
+            output.WriteLine($"{label} | балл {Format(score)}" + WeightLabel("вес оценки", weight) + details);
     }
+
+    private static string WeightLabel(string label, decimal? weight) =>
+        weight is decimal value ? $" | {label} {value.ToString(CultureInfo.InvariantCulture)}" : "";
 
     private static string Format(decimal? value) => value?.ToString("0.####", CultureInfo.InvariantCulture) ?? "-";
 }

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using POS.Application.Reports;
+using POS.Application;
+using POS.Domain;
 
 namespace POS.Infrastructure;
 
@@ -17,49 +19,28 @@ public sealed class JsonReportExporter : IReportExporter
 
     public void Write(AssessmentReport report, Stream output)
     {
-        if (report.GroupBy == ReportGrouping.Student)
-        {
-            JsonSerializer.Serialize(output, new
-            {
-                report.GroupBy,
-                report.AverageMethod,
-                report.Students,
-                report.Teachers,
-                Criteria = report.Rubric,
-                Scores = report.Groups.SelectMany(group => group.Scores),
-                Summaries = report.Groups.Select(group => new
-                {
-                    StudentNumber = group.Number,
-                    Criteria = group.StatisticsByCriterion.Select(criterion => new
-                    {
-                        criterion.CriterionNumber,
-                        TeacherCount = criterion.ScoreCount,
-                        criterion.Average,
-                        criterion.LowestScore,
-                        criterion.HighestScore
-                    }),
-                    group.Total,
-                    group.AssessedCriteria
-                })
-            }, Options);
-            return;
-        }
-
         JsonSerializer.Serialize(output, new
         {
             report.GroupBy,
+            report.Order,
             report.AverageMethod,
             report.Students,
             report.Teachers,
             Criteria = report.Rubric,
-            Groups = report.Groups.Select(group => new
-            {
-                group.Number,
-                group.Scores,
-                Criteria = group.StatisticsByCriterion,
-                group.Total,
-                group.AssessedCriteria
-            })
+            Groups = report.Groups.Select(SerializeGroup)
         }, Options);
     }
+
+    private static object SerializeGroup(TableGroup<ReportScoreRow> group) => new
+    {
+        Number = group.Key,
+        group.AppliedWeight,
+        group.Average,
+        group.Total,
+        group.Minimum,
+        group.Maximum,
+        ScoreCount = group.Rows.Count,
+        Scores = group.Children.Count == 0 ? group.Rows : [],
+        Children = group.Children.Select(SerializeGroup)
+    };
 }

@@ -14,8 +14,9 @@ internal sealed class SetScoreConsoleCommand(AssessmentSession session, ConsoleM
         decimal score = CommandArguments.ReadDecimal(arguments[^1]);
         var (teacher, student, criterion) = FindEvaluationNumbers(session, arguments);
 
+        string details = DescribeEvaluation(session, student, teacher, criterion);
         SetScore(session, new SetScoreCommand(student, teacher, criterion, score));
-        output.WriteLine("Оценка выставлена.");
+        output.WriteLine(FormattableString.Invariant($"Оценка выставлена: {details} | балл {score}."));
     }
 }
 
@@ -31,8 +32,10 @@ internal sealed class CorrectScoreConsoleCommand(AssessmentSession session, Cons
         decimal score = CommandArguments.ReadDecimal(arguments[^1]);
         var (teacher, student, criterion) = FindEvaluationNumbers(session, arguments);
 
-        CorrectScore(session, student, teacher, criterion, score);
-        output.WriteLine("Оценка исправлена.");
+        string details = DescribeEvaluation(session, student, teacher, criterion);
+        var previousScore = CorrectScore(session, student, teacher, criterion, score);
+        output.WriteLine(FormattableString.Invariant(
+            $"Оценка исправлена: {details} | балл {previousScore.Value} -> {score}."));
     }
 }
 
@@ -47,8 +50,10 @@ internal sealed class CancelScoreConsoleCommand(AssessmentSession session, Conso
         string[] arguments = mode.ReadEvaluationArguments(input, includesScore: false);
         var (teacher, student, criterion) = FindEvaluationNumbers(session, arguments);
 
-        CancelScore(session, student, teacher, criterion);
-        output.WriteLine("Оценка отменена.");
+        string details = DescribeEvaluation(session, student, teacher, criterion);
+        var previousScore = CancelScore(session, student, teacher, criterion);
+        output.WriteLine(FormattableString.Invariant(
+            $"Оценка отменена: {details} | удалённый балл {previousScore.Value}."));
     }
 }
 

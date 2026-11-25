@@ -11,7 +11,7 @@ internal sealed class AddStudentCommand(AssessmentSession session) : ConsoleComm
     public override void Execute(string input, TextWriter output)
     {
         int number = AddStudent(session, input);
-        output.WriteLine($"Студент №{number}.");
+        output.WriteLine($"Добавлен студент №{number}: {input}.");
     }
 }
 
@@ -38,10 +38,10 @@ internal sealed class AddTeacherCommand(AssessmentSession session) : ConsoleComm
         if (fields.Length > 2)
             throw new FormatException("Укажите имя и, при необходимости, вес через |.");
 
-        int number = fields.Length == 1
-            ? AddTeacher(session, fields[0])
-            : AddTeacher(session, fields[0], CommandArguments.ReadDecimal(fields[1]));
-        output.WriteLine($"Преподаватель №{number}.");
+        decimal weight = fields.Length == 1 ? 1m : CommandArguments.ReadDecimal(fields[1]);
+        int number = AddTeacher(session, fields[0], weight);
+        output.WriteLine(FormattableString.Invariant(
+            $"Добавлен преподаватель №{number}: {fields[0]} | вес {weight}."));
     }
 }
 

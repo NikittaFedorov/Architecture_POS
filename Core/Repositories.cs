@@ -30,7 +30,11 @@ public interface IEvaluationRepository
     bool Update(EvaluationKey key, Score score);
     bool Remove(EvaluationKey key);
     IReadOnlyList<EvaluationRow> ListScoresForStudent(int studentNumber, int? teacherNumber);
-    IReadOnlyList<ReportScoreRow> ListReportScores(int? studentNumber, int? teacherNumber);
+    // An empty filter means all entries of that kind.
+    IReadOnlyList<ReportScoreRow> ListReportScores(
+        IReadOnlyCollection<int> studentNumbers,
+        IReadOnlyCollection<int> teacherNumbers,
+        IReadOnlyCollection<int> criterionNumbers);
 }
 
 public readonly record struct Numbered<T>(int Number, T Value);

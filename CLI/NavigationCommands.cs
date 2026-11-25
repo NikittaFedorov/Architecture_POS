@@ -43,6 +43,8 @@ internal sealed class BackCommand(AssessmentSession session) : ConsoleCommand
     public override void Execute(string input, TextWriter output)
     {
         session.GoBack();
-        output.WriteLine("Возврат на один уровень.");
+        output.WriteLine(session.AuthScope.Teacher is { } teacher
+            ? $"Возврат в режим преподавателя №{teacher.Number} {teacher.Value.Name}."
+            : "Возврат в главный режим.");
     }
 }

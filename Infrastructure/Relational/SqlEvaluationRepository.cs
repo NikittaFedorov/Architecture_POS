@@ -31,9 +31,36 @@ public class SqlEvaluationRepository(RelationalDatabase database) : IEvaluationR
         database.Query(ListScoresForStudentSql, ReadEvaluationRow,
             ("student", studentNumber), ("teacher", teacherNumber));
 
-    public IReadOnlyList<ReportScoreRow> ListReportScores(int? studentNumber, int? teacherNumber) =>
-        database.Query(ListReportScoresSql, ReadReportScore,
-            ("student", studentNumber), ("teacher", teacherNumber));
+    public IReadOnlyList<ReportScoreRow> ListReportScores(
+        IReadOnlyCollection<int> studentNumbers,
+        IReadOnlyCollection<int> teacherNumbers,
+        IReadOnlyCollection<int> criterionNumbers)
+    {
+        var conditions = new List<string>();
+        var parameters = new List<(string Name, object? Value)>();
+        AddFilter("student", studentNumbers);
+        AddFilter("teacher", teacherNumbers);
+        AddFilter("criterion", criterionNumbers);
+
+        string where = conditions.Count == 0 ? "" : " WHERE " + string.Join(" AND ", conditions);
+        return database.Query(ListReportScoresSql + where + " ORDER BY student, criterion, teacher",
+            ReadReportScore, parameters.ToArray());
+
+        void AddFilter(string column, IReadOnlyCollection<int> numbers)
+        {
+            if (numbers.Count == 0)
+                return;
+
+            var placeholders = new List<string>(numbers.Count);
+            foreach (int number in numbers)
+            {
+                string name = $"{column}{placeholders.Count}";
+                placeholders.Add("$" + name);
+                parameters.Add((name, number));
+            }
+            conditions.Add($"{column} IN ({string.Join(", ", placeholders)})");
+        }
+    }
 
     private static ReportScoreRow ReadReportScore(DbDataReader row)
     {
@@ -95,9 +122,6 @@ public class SqlEvaluationRepository(RelationalDatabase database) : IEvaluationR
     protected virtual string ListReportScoresSql => """
         SELECT student, teacher, criterion, score_tenths
         FROM evaluations
-        WHERE ($student IS NULL OR student = $student)
-          AND ($teacher IS NULL OR teacher = $teacher)
-        ORDER BY student, criterion, teacher
         """;
 
     protected virtual string ListScoresForStudentSql => """

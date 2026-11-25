@@ -63,27 +63,36 @@ internal sealed partial class AssessmentSession(
         var key = CreateScopedEvaluationKey(command.Student, command.Teacher, command.Criterion);
         var evaluation = CreateEvaluation(key, command.Score);
         if (!evaluations.TryAdd(key, evaluation.Score))
-            throw new InvalidOperationException("Оценка по этой тройке уже выставлена.");
+            throw EvaluationError(key, "уже выставлена");
     }
 
-    private void CorrectScore(int student, int teacher, int criterion, decimal score)
+    private Score CorrectScore(int student, int teacher, int criterion, decimal score)
     {
         var key = CreateScopedEvaluationKey(student, teacher, criterion);
-        if (evaluations.FindScore(key) == null)
-            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
+        Score previousScore = evaluations.FindScore(key)
+            ?? throw EvaluationError(key, "не найдена");
 
         var evaluation = CreateEvaluation(key, score);
 
         if (!evaluations.Update(key, evaluation.Score))
-            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
+            throw EvaluationError(key, "не найдена");
+
+        return previousScore;
     }
 
-    private void CancelScore(int student, int teacher, int criterion)
+    private Score CancelScore(int student, int teacher, int criterion)
     {
         var key = CreateScopedEvaluationKey(student, teacher, criterion);
+        Score previousScore = evaluations.FindScore(key)
+            ?? throw EvaluationError(key, "не найдена");
         if (!evaluations.Remove(key))
-            throw new InvalidOperationException("Оценка по этой тройке не найдена.");
+            throw EvaluationError(key, "не найдена");
+
+        return previousScore;
     }
+
+    private InvalidOperationException EvaluationError(EvaluationKey key, string problem) =>
+        new($"Оценка {problem}: студент №{key.Student} {FindStudent(key.Student).Name} | преподаватель №{key.Teacher} {FindTeacher(key.Teacher).Name} | критерий №{key.Criterion} {FindCriterion(key.Criterion).Name}.");
 
     private Evaluation CreateEvaluation(EvaluationKey key, decimal score) =>
         new(FindStudent(key.Student), FindTeacher(key.Teacher), FindCriterion(key.Criterion), new Score(score));
